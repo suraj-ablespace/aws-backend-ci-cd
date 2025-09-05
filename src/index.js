@@ -11,13 +11,15 @@ app.get('/', (req, res) => {
   res.json({ message: 'Hello from root API' });
 });
 
-app.get('/health', (req, res) => {
-  const uptime = Math.floor(process.uptime());
+app.get('/test-ci', (req, res) => {
   res.json({
-    status: 'ok',
-    uptime,
+    message: 'Bhai!...mai bhi deploy hogya. badhai ho bhai',
+    timestamp: new Date().toISOString(),
   });
 });
+
+//testing ci/cd 
+
 
 // Start server
 app.listen(PORT, () => {
