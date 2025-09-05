@@ -2,32 +2,25 @@
   "name": "aws-ci-cd-demo-backend",
   "version": "1.0.0",
   "description": "Backend API with AWS CI/CD deployment pipeline",
-  "main": "dist/index.js",
+  "main": "src/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "format": "prettier --write src/**/*.ts"
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
   },
-  "keywords": ["node", "express", "typescript", "aws", "cicd"],
+  "keywords": [
+    "node",
+    "express",
+    "javascript",
+    "aws",
+    "cicd"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.10.5",
-    "@typescript-eslint/eslint-plugin": "^6.16.0",
-    "@typescript-eslint/parser": "^6.16.0",
-    "eslint": "^8.56.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.1.2",
-    "prettier": "^3.1.1",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3"
+    "nodemon": "^3.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

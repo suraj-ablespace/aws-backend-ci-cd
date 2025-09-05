@@ -1,8 +1,8 @@
 {
   "watch": ["src"],
-  "ext": "ts,json",
-  "ignore": ["src/**/*.test.ts", "src/**/*.spec.ts"],
-  "exec": "ts-node-dev --respawn --transpile-only src/index.ts",
+  "ext": "js,json",
+  "ignore": ["src/**/*.test.js", "src/**/*.spec.js"],
+  "exec": "node src/index.js",
   "env": {
     "NODE_ENV": "development"
   }

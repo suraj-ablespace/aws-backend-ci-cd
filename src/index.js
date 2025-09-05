@@ -1,21 +1,21 @@
-import express, { Request, Response } from 'express';
+const express = require('express');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 9001;
 
 // Middleware
 app.use(express.json());
 
 // Routes
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (req, res) => {
   res.json({ message: 'Hello from root API' });
 });
 
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (req, res) => {
   const uptime = Math.floor(process.uptime());
-  res.json({ 
-    status: 'ok', 
-    uptime 
+  res.json({
+    status: 'ok',
+    uptime,
   });
 });
 
@@ -25,4 +25,4 @@ app.listen(PORT, () => {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-export default app;
+module.exports = app;
