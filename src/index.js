@@ -11,14 +11,21 @@ app.get('/', (req, res) => {
   res.json({ message: 'Hello from root API' });
 });
 
+//testing ci/cd 
+app.get('/health', (req, res) => {
+  const uptime = Math.floor(process.uptime());
+  res.json({
+    status: 'ok',
+    uptime,
+  });
+});
+
 app.get('/test-ci', (req, res) => {
   res.json({
     message: 'Bhai!...mai bhi deploy hogya. badhai ho bhai',
     timestamp: new Date().toISOString(),
   });
 });
-
-//testing ci/cd 
 
 
 // Start server
