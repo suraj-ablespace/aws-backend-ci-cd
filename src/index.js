@@ -27,6 +27,13 @@ app.get('/test-ci', (req, res) => {
   });
 });
 
+app.get('/test-docker-ecr-app-runner', (req, res) => {
+  res.json({
+    message: 'Sab sahi hai',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 
 // Start server
 app.listen(PORT, () => {
