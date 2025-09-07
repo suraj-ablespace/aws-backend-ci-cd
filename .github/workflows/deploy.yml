@@ -64,16 +64,34 @@ jobs:
               --region $AWS_REGION
           fi
 
-      - name: Wait for App Runner service to be RUNNING
+      - name: Wait for App Runner deployment to complete
         run: |
           SERVICE_ARN=$(aws apprunner list-services \
             --query "ServiceSummaryList[?ServiceName=='$APP_RUNNER_SERVICE_NAME'].ServiceArn" \
             --output text --region $AWS_REGION)
 
-          echo "Waiting for App Runner service to be RUNNING..."
-          aws apprunner wait service-running \
-            --service-arn $SERVICE_ARN \
-            --region $AWS_REGION
+          echo "Waiting for deployment to complete... ⏳"
+          # Loop for up to 10 minutes (60 tries * 10 seconds)
+          for i in {1..60}; do
+            STATUS=$(aws apprunner describe-service --service-arn $SERVICE_ARN --query "Service.Status" --output text --region $AWS_REGION)
+            echo "Current service status: $STATUS"
+            
+            if [ "$STATUS" == "RUNNING" ]; then
+              echo "✅ Deployment successful!"
+              break
+            elif [ "$STATUS" == "CREATE_FAILED" ] || [ "$STATUS" == "UPDATE_FAILED" ] || [ "$STATUS" == "DELETE_FAILED" ]; then
+              echo "❌ Deployment failed with status: $STATUS"
+              exit 1
+            fi
+            
+            sleep 10
+          done
+
+          # Final check to see if the loop timed out
+          if [ "$STATUS" != "RUNNING" ]; then
+            echo "❌ Timed out waiting for service to become RUNNING."
+            exit 1
+          fi
 
           SERVICE_URL=$(aws apprunner describe-service \
             --service-arn $SERVICE_ARN \
