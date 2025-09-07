@@ -105,7 +105,7 @@ jobs:
         run: |
           echo "Running health check..."
           for i in {1..10}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" $SERVICE_URL/health || true)
+            STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" $SERVICE_URL/health || true)
             if [ "$STATUS" == "200" ]; then
               echo "✅ Health check passed!"
               exit 0
