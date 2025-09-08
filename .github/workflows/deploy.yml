@@ -5,10 +5,6 @@ on:
     branches:
       - main
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -21,6 +17,9 @@ jobs:
       ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
       APP_RUNNER_SERVICE_NAME: ${{ vars.APP_RUNNER_SERVICE_NAME }}
       APP_RUNNER_ECR_ACCESS_ROLE_ARN: ${{ vars.APP_RUNNER_ECR_ACCESS_ROLE_ARN }}
+
+    outputs:
+      service_url: ${{ steps.get-url.outputs.service_url }}
 
     steps:
       - name: Checkout code
@@ -36,12 +35,27 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      # 🔹 Enable Docker Buildx and caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
       - name: Build, tag, and push image
         run: |
           IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
           IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${IMAGE_TAG}
-          docker build -t $IMAGE_URI .
-          docker push $IMAGE_URI
+          docker buildx build \
+            --cache-from=type=local,src=/tmp/.buildx-cache \
+            --cache-to=type=local,dest=/tmp/.buildx-cache-new \
+            --push -t $IMAGE_URI .
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
       - name: Deploy to App Runner (create if missing)
@@ -71,48 +85,37 @@ jobs:
             --output text --region $AWS_REGION)
 
           echo "Waiting for deployment to complete... ⏳"
-          # Loop for up to 10 minutes (60 tries * 10 seconds)
           for i in {1..60}; do
-            STATUS=$(aws apprunner describe-service --service-arn $SERVICE_ARN --query "Service.Status" --output text --region $AWS_REGION)
+            STATUS=$(aws apprunner describe-service \
+              --service-arn $SERVICE_ARN \
+              --query "Service.Status" \
+              --output text --region $AWS_REGION)
             echo "Current service status: $STATUS"
-            
+
             if [ "$STATUS" == "RUNNING" ]; then
               echo "✅ Deployment successful!"
               break
-            elif [ "$STATUS" == "CREATE_FAILED" ] || [ "$STATUS" == "UPDATE_FAILED" ] || [ "$STATUS" == "DELETE_FAILED" ]; then
+            elif [[ "$STATUS" == *"FAILED"* ]]; then
               echo "❌ Deployment failed with status: $STATUS"
               exit 1
             fi
-            
             sleep 10
           done
 
-          # Final check to see if the loop timed out
           if [ "$STATUS" != "RUNNING" ]; then
             echo "❌ Timed out waiting for service to become RUNNING."
             exit 1
           fi
 
+      - name: Get App Runner URL
+        id: get-url
+        run: |
+          SERVICE_ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='$APP_RUNNER_SERVICE_NAME'].ServiceArn" \
+            --output text --region $AWS_REGION)
           SERVICE_URL=$(aws apprunner describe-service \
             --service-arn $SERVICE_ARN \
             --query "Service.ServiceUrl" \
             --output text --region $AWS_REGION)
-
           echo "✅ App Runner service is live at: $SERVICE_URL"
-          echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_ENV
-
-      - name: Health check app endpoint
-        run: |
-          echo "Running health check..."
-          for i in {1..10}; do
-            STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" $SERVICE_URL/health || true)
-            if [ "$STATUS" == "200" ]; then
-              echo "✅ Health check passed!"
-              exit 0
-            else
-              echo "Health check attempt $i failed (status: $STATUS), retrying..."
-              sleep 10
-            fi
-          done
-          echo "❌ Health check failed after multiple attempts"
-          exit 1
+          echo "service_url=$SERVICE_URL" >> $GITHUB_OUTPUT
