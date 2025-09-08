@@ -74,3 +74,6 @@
 3. **GitHub Actions** creates/updates App Runner service with the new image
 4. **App Runner** assumes `S-Demo-AppRunner-ECRAccessRole` to pull the image from ECR
 5. **App Runner** deploys the containerized application
+
+
+### Generated with AWS Amazon Q
