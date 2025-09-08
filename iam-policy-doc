@@ -1,0 +1,76 @@
+# S-Demo-AppRunner-ECRAccessRole, S-Demo-GitHubActions-AppRunnerRole IAM Roles Documentation
+
+## Roles
+
+### 1. S-Demo-AppRunner-ECRAccessRole
+
+**Purpose**: Enables AWS App Runner service to access and pull container images from Amazon ECR during application deployment.
+
+**Created**: September 7, 2025
+
+**Trust Relationship**:
+- Trusted Entity: `build.apprunner.amazonaws.com` (AWS App Runner build service)
+- Allows App Runner to assume this role for ECR operations
+
+**Permissions**:
+- **Managed Policy**: `AWSAppRunnerServicePolicyForECRAccess`
+  - ECR image retrieval operations
+  - Get download URLs for container layers
+  - Describe images and repositories
+  - Get authorization tokens
+  - Check layer availability
+  - Applies to all ECR resources (`*`)
+
+**Use Case**: This role is automatically used by App Runner when it needs to pull container images from ECR repositories during the deployment process.
+
+---
+
+### 2. S-Demo-GitHubActions-AppRunnerRole
+
+**Purpose**: Enables GitHub Actions workflows to manage App Runner deployments and push container images to ECR as part of CI/CD pipeline.
+
+**Created**: September 7, 2025
+
+**Trust Relationship**:
+- Trusted Entity: GitHub Actions via OIDC provider
+- Repository: `suraj-ablespace/aws-backend-ci-cd`
+- Branch: `main`
+- Enables secure, keyless authentication from GitHub Actions
+
+**Permissions**:
+
+#### Inline Policy 1: S-Demo-GitHubActions-AppRunnerRole-Permissions-Policy
+- **ECR Operations**:
+  - Push images to repository: `aws-ci-cd-node-app`
+  - Get authorization tokens
+  - Upload and complete layer uploads
+- **App Runner Operations**:
+  - Create, update, describe, and list App Runner services
+  - Pass role permissions to App Runner service
+- **IAM Operations**:
+  - Pass role: `S-Demo-AppRunner-ECRAccessRole`
+
+#### Inline Policy 2: S-Demo-GitHubActionsECR-AppRunner-Policy
+- **ECR Authentication & Management**:
+  - Get authorization tokens
+  - Image push operations
+  - Repository management
+- **App Runner Service Management**:
+  - Full service lifecycle management
+  - Deployment operations
+  - Service configuration updates
+- **Role Management**:
+  - Pass the ECR access role to App Runner services
+
+**Use Case**: This role is used by GitHub Actions workflows to:
+1. Build and push container images to ECR
+2. Create or update App Runner services
+3. Manage the complete CI/CD deployment process
+
+## Architecture Flow
+
+1. **GitHub Actions** assumes `S-Demo-GitHubActions-AppRunnerRole`
+2. **GitHub Actions** builds and pushes container image to ECR repository `aws-ci-cd-node-app`
+3. **GitHub Actions** creates/updates App Runner service with the new image
+4. **App Runner** assumes `S-Demo-AppRunner-ECRAccessRole` to pull the image from ECR
+5. **App Runner** deploys the containerized application
